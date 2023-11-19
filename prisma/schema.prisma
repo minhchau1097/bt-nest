@@ -1,0 +1,94 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model banner_phim {
+  maBanner Int    @id @default(autoincrement()) @map("ma_banner")
+  maPhim   Int?   @map("ma_phim")
+  hinhAnh  String @map("hinh_anh") @db.VarChar(255)
+  phim     phim?  @relation(fields: [maPhim], references: [maPhim], onDelete: Cascade, onUpdate: NoAction, map: "banner_phim_ibfk_1")
+
+  @@index([maPhim], map: "ma_phim")
+}
+
+model cum_rap {
+  maCumRap     String        @id @map("ma_cum_rap") @db.VarChar(50)
+  tenCumRap    String        @map("ten_cum_rap") @db.VarChar(100)
+  diaChi       String        @map("dia_chi") @db.VarChar(255)
+  maHeThongRap String?       @map("ma_he_thong_rap") @db.VarChar(50)
+  he_thong_rap he_thong_rap? @relation(fields: [maHeThongRap], references: [maHeThongRap], onDelete: Cascade, onUpdate: NoAction, map: "cum_rap_ibfk_1")
+  rap_phim     rap_phim[]
+
+  @@index([maHeThongRap], map: "ma_he_thong_rap")
+}
+
+model ghe {
+  maGhe    Int       @id @default(autoincrement()) @map("ma_ghe")
+  tenGhe   String    @map("ten_ghe") @db.VarChar(50)
+  loaiGhe  String    @map("loai_ghe") @db.VarChar(50)
+  maRap    Int?      @map("ma_rap")
+  rap_phim rap_phim? @relation(fields: [maRap], references: [maRap], onDelete: Cascade, onUpdate: NoAction, map: "ghe_ibfk_1")
+
+  @@index([maRap], map: "ma_rap")
+}
+
+model he_thong_rap {
+  maHeThongRap  String    @id @map("ma_he_thong_rap") @db.VarChar(50)
+  tenHeThongRap String    @map("ten_he_thong_rap") @db.VarChar(255)
+  logo          String    @db.VarChar(255)
+  cum_rap       cum_rap[]
+}
+
+model nguoi_dung {
+  id            Int    @id @default(autoincrement())
+  taiKhoan      String @map("tai_khoan") @db.VarChar(50)
+  hoTen         String @map("ho_ten") @db.VarChar(50)
+  email         String @db.VarChar(100)
+  soDt          String @map("so_dt") @db.VarChar(15)
+  matKhau       String @map("mat_khau") @db.VarChar(255)
+  loaiNguoiDung String @default("CUSTOMER") @map("loai_nguoi_dung") @db.VarChar(50)
+}
+
+model phim {
+  maPhim        Int           @id @default(autoincrement()) @map("ma_phim")
+  tenPhim       String        @map("ten_phim") @db.VarChar(100)
+  trailer       String        @db.VarChar(255)
+  hinhAnh       String        @map("hinh_anh") @db.VarChar(255)
+  moTa          String        @map("mo_ta") @db.Text
+  ngayKhoiChieu DateTime      @map("ngay_khoi_chieu") @db.DateTime(0)
+  danhGia       Int           @map("danh_gia")
+  hot           Boolean
+  dangChieu     Boolean       @map("dang_chieu")
+  sapChieu      Boolean       @map("sap_chieu")
+  bannerPhim    banner_phim[]
+  lich_chieu    lich_chieu[]
+}
+
+model rap_phim {
+  maRap      Int          @id @default(autoincrement()) @map("ma_rap")
+  tenRap     String       @map("ten_rap") @db.VarChar(100)
+  maCumRap   String?      @map("ma_cum_rap") @db.VarChar(50)
+  ghe        ghe[]
+  lich_chieu lich_chieu[]
+  cum_rap    cum_rap?     @relation(fields: [maCumRap], references: [maCumRap], onDelete: Cascade, onUpdate: NoAction, map: "rap_phim_ibfk_1")
+
+  @@index([maCumRap], map: "ma_cum_rap")
+}
+
+model lich_chieu {
+  maLichChieu       Int       @id @default(autoincrement()) @map("ma_lich_chieu")
+  maRap             Int?      @map("ma_rap")
+  maPhim            Int?      @map("ma_phim")
+  ngayChieuGioChieu DateTime  @map("ngay_gio_chieu") @db.DateTime(0)
+  giaVe             Float?    @map("gia_ve") @db.Float
+  rap_phim          rap_phim? @relation(fields: [maRap], references: [maRap], onDelete: Cascade, onUpdate: NoAction, map: "lich_chieu_ibfk_1")
+  phim              phim?     @relation(fields: [maPhim], references: [maPhim], onDelete: Cascade, onUpdate: NoAction, map: "lich_chieu_ibfk_2")
+
+  @@index([maPhim], map: "ma_phim")
+  @@index([maRap], map: "ma_rap")
+}
