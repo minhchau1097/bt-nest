@@ -1,60 +1,54 @@
-import { BadRequestException, HttpException, Injectable } from '@nestjs/common';
-import { Film } from './dto/create-film.dto';
-import { PrismaService } from 'src/prisma.service';
+import { BadRequestException, Injectable, InternalServerErrorException, NotFoundException } from '@nestjs/common';
+import { PrismaService } from 'prisma/prisma.service';
 import { AppService } from 'src/app.service';
 import * as sharp from 'sharp';
 import * as path from 'path';
 import { UpdateFilmDto } from './dto/update-film.dto';
-import { TheatersService } from 'src/theaters/theaters.service';
+import * as moment from 'moment';
+import 'moment/locale/vi'
+import { Film } from './entities/film.entity';
+import * as fs from 'fs'
+
+moment.locale('vi')
 @Injectable()
 export class FilmsService extends AppService {
   constructor(protected prisma: PrismaService) {
     super()
   }
   async getBanner() {
-    let data = await this.prisma.banner_phim.findMany();
-    return {
-      message:'Xử lý thành công!',
-      statusCode:'200',
-      content: data
-    };
+
+    const data = await this.prisma.banner_phim.findMany();
+    return this.response(data)
+
   }
 
   async getFilms(value: string = '') {
-
-    let data = await this.prisma.phim.findMany({
+    const data = await this.prisma.phim.findMany({
       where: {
         tenPhim: {
-          contains:value
+          contains: value
         }
       }
     })
-    return {
-      message:'Xử lý thành công!',
-      statusCode:'200',
-      content: data
-    };
+    const newData = data.map(item => {
+      return { ...item, ngayKhoiChieu: moment(item.ngayKhoiChieu).format() }
+    })
+    return this.response(newData)
+
   }
   async addFilms(file: Express.Multer.File, body: Film) {
-    console.log(body)
     let { tenPhim, trailer, moTa, ngayKhoiChieu, dangChieu, danhGia, hot, sapChieu } = body
-
-    let date = this.parseDate(new Date(ngayKhoiChieu).getTime())
     danhGia = Number(danhGia);
     let _hot = this.parseBoolean(`${hot}`)
     let _dangChieu = this.parseBoolean(`${dangChieu}`)
     let _sapChieu = this.parseBoolean(`${sapChieu}`)
-
-
     let status = await this.prisma.phim.findFirst({
       where: {
         tenPhim
       }
     })
-    if (status) return 'Phim đã tồn tại'
-    console.log(date)
+    if (status) throw new InternalServerErrorException('Phim đã tồn tại')
     const filename = Date.now() + '_' + file.originalname + '.webp';
-
     await sharp(file.buffer)
       .resize(800)
       .webp({ effort: 3 })
@@ -64,23 +58,24 @@ export class FilmsService extends AppService {
       trailer,
       hinhAnh: filename,
       moTa,
-      ngayKhoiChieu: date,
+      ngayKhoiChieu: moment(ngayKhoiChieu).format(),
       danhGia,
       hot: _hot,
       dangChieu: _dangChieu,
       sapChieu: _sapChieu,
     }
-    await this.prisma.phim.create({ data })
-    return {
-      message:'Xử lý thành công!',
-      statusCode:'200',
-      content: data
-    };
+    const phim = await this.prisma.phim.create({ data })
+    await this.prisma.banner_phim.create({
+      data: {
+        maPhim: phim.maPhim,
+        hinhAnh: phim.hinhAnh
+      }
+    })
+    return this.response(data, 201)
+
   }
   async updateFilms(file: Express.Multer.File, body: UpdateFilmDto) {
     let { tenPhim, trailer, moTa, ngayKhoiChieu, dangChieu, danhGia, hot, sapChieu } = body
-
-    let date = this.parseDate(new Date(ngayKhoiChieu).getTime())
     danhGia = Number(danhGia);
     let _hot = this.parseBoolean(`${hot}`)
     let _dangChieu = this.parseBoolean(`${dangChieu}`)
@@ -92,9 +87,11 @@ export class FilmsService extends AppService {
         tenPhim
       }
     })
-    if (!status) throw new BadRequestException('Phim không tồn tại')
+    if (!status) throw new NotFoundException('Phim không tồn tại')
 
     if (file) {
+      fs.unlinkSync(path.join(process.cwd() + '/public/img', status.hinhAnh))
+
       fileName = Date.now() + '_' + file.originalname + '.webp';
 
       await sharp(file.buffer)
@@ -103,28 +100,52 @@ export class FilmsService extends AppService {
         .toFile(path.join(process.cwd() + '/public/img', fileName));
     }
     let data = {
-      tenPhim,
-      trailer,
+      tenPhim: tenPhim ? tenPhim : status.tenPhim,
+      trailer: trailer ? trailer : status.trailer,
       hinhAnh: file ? fileName : status.hinhAnh,
-      moTa,
-      ngayKhoiChieu: date,
-      danhGia,
-      hot: _hot,
-      dangChieu: _dangChieu,
-      sapChieu: _sapChieu,
+      moTa: moTa ? moTa : status.moTa,
+      ngayKhoiChieu: ngayKhoiChieu ? moment(ngayKhoiChieu).format() : status.ngayKhoiChieu,
+      danhGia: danhGia ? danhGia : status.danhGia,
+      hot: hot ? _hot : status.hot,
+      dangChieu: dangChieu ? _dangChieu : status.dangChieu,
+      sapChieu: sapChieu ? _sapChieu : status.sapChieu,
     }
-    await this.prisma.phim.update({
+    const phim = await this.prisma.phim.update({
       where: {
         maPhim: status.maPhim
       }, data
     })
-    return {
-      message:'Xử lý thành công!',
-      statusCode:'200',
-      content: data
-    };
-  }
+    const banner = await this.prisma.banner_phim.findFirst({
+      where: {
+        maPhim: phim.maPhim
+      }
+    })
+    await this.prisma.banner_phim.update({
+      where: {
+        maBanner: banner.maBanner,
+        maPhim: phim.maPhim
+      }, data: {
+        hinhAnh: phim.hinhAnh
+      }
+    })
+    return this.response(data, 201)
 
+  }
+  async getFilmsPage(tenPhim: string, soTrang: number = 1, soPhanTuTrenTrang: number = 10) {
+    if (soTrang <= 0) throw new BadRequestException('Số trang không hợp lệ')
+    if (soPhanTuTrenTrang <= 0) throw new BadRequestException('Số phần tử trên trang không hợp lệ')
+    let index = Number((soTrang - 1)) * Number(soPhanTuTrenTrang);
+    let data = await this.prisma.phim.findMany({
+      where: {
+        tenPhim: {
+          contains: tenPhim
+        }
+      },
+      skip: index,
+      take: Number(soPhanTuTrenTrang)
+    })
+    return this.response(data);
+  }
   async deleteFilms(maPhim: number) {
     maPhim = Number(maPhim);
     let data = await this.prisma.phim.findFirst({
@@ -138,11 +159,7 @@ export class FilmsService extends AppService {
         maPhim: data.maPhim
       }
     })
-    return {
-      message:'Xoá thành công!',
-      statusCode:'200',
-      content: data
-    }
+    return this.response(data)
   }
   async getInforFilm(maPhim: number) {
     maPhim = Number(maPhim);
@@ -152,15 +169,35 @@ export class FilmsService extends AppService {
       }
     })
     let err = {
-      message:'Phim không tồn tại',
-      statusCode:'400',
-      content:'Mã phim không hợp lệ!'
+      message: 'Phim không tồn tại',
+      statusCode: '400',
+      content: 'Mã phim không hợp lệ!'
     }
     if (!data) throw new BadRequestException(err)
-    return {
-      message:'Xử lý thành công!',
-      statusCode:'200',
-      content: data
-    }
+    return this.response({ ...data, ngayKhoiChieu: moment(data.ngayKhoiChieu).format() })
+  }
+  async getFilmsByDay(tenPhim: string, soTrang: number = 1, soPhanTuTrenTrang: number = 10, tuNgay: string, denNgay: string) {
+    if (tuNgay && !moment(tuNgay, 'DD-MM-YYYY', true).isValid()) throw new BadRequestException('Ngày không hợp lệ')
+    if (denNgay && !moment(denNgay, 'DD-MM-YYYY', true).isValid()) throw new BadRequestException('Ngày không hợp lệ')
+    let index = Number((soTrang - 1)) * Number(soPhanTuTrenTrang);
+    const phim = await this.prisma.phim.findMany({
+      where: {
+        tenPhim: {
+          contains: tenPhim
+        },
+        ngayKhoiChieu: {
+          gte: tuNgay ? moment(tuNgay, 'DD-MM-YYYY').startOf('day').toDate() : moment("20111031", "YYYYMMDD").toDate(),
+          lte: denNgay ? moment(denNgay, 'DD-MM-YYYY').endOf('day').toDate() : moment().format()
+        }
+
+      },
+      skip: index,
+      take: Number(soPhanTuTrenTrang),
+
+    })
+    const newData = phim.map(item => {
+      return { ...item, ngayKhoiChieu: moment(item.ngayKhoiChieu).format() }
+    })
+    return this.response(newData)
   }
 }

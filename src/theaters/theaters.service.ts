@@ -1,11 +1,15 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
-import { Arr, CreateTheaterDto, ListMovie } from './dto/create-theater.dto';
-import { UpdateTheaterDto } from './dto/update-theater.dto';
-import { PrismaService } from 'src/prisma.service';
-
+import { Injectable, NotFoundException, InternalServerErrorException } from '@nestjs/common';
+import { PrismaService } from 'prisma/prisma.service';
+import { AppService } from 'src/app.service';
+import * as moment from 'moment';
+import 'moment/locale/vi'
+import { cum_rap, he_thong_rap, rap_phim } from '@prisma/client';
+moment.locale('vi')
 @Injectable()
-export class TheatersService {
-  constructor(private prisma: PrismaService) { }
+export class TheatersService extends AppService {
+  constructor(private prisma: PrismaService) {
+    super()
+  }
   async getTheaterSystem(id: string = '') {
     let data = await this.prisma.he_thong_rap.findMany({
       where: {
@@ -14,11 +18,9 @@ export class TheatersService {
         }
       }
     })
-    return {
-      message: 'Xử lý thành công!',
-      statusCode: '200',
-      content: data
-    };
+    if (data.length === 0) throw new InternalServerErrorException('Mã hệ thống không tồn tại')
+    return this.response(data);
+
   }
   async getTheaterCluster(id: string = '') {
     let cumRap = await this.prisma.cum_rap.findMany({
@@ -42,151 +44,212 @@ export class TheatersService {
         })
       }
     })
-    return {
-      message: 'Xử lý thành công!',
-      statusCode: '200',
-      content: data
-    };
+    return this.response(data)
+
   }
-
   async getTheaterShowtimes(id: string) {
-
-    let data = await this.prisma.he_thong_rap.findMany({
+    const data = await this.prisma.he_thong_rap.findMany({
       where: {
         maHeThongRap: {
           contains: id
         }
       },
       include: {
-        cum_rap: {
-          include: {
-            rap_phim: {
-              include: {
-                lich_chieu: {
-                  include: {
-                    phim: true
-                  }
-                }
-              }
+        cum_rap: true
+      }
+    });
+
+    const [phim, lichChieu] = await Promise.all([
+      this.prisma.phim.findMany({
+        include: {
+          lich_chieu: {
+            include: {
+              rap_phim: true
             }
           }
         }
-      }
-    })
-    
+      }),
+      this.prisma.lich_chieu.findMany({
+        include: {
+          rap_phim: true
+        }
+      })
+    ]);
 
     const newData = data.map(item => {
+      const danhSachPhim = [];
+      item.cum_rap.forEach(cumRap => {
+        const arrDanhSach = [];
+        phim.forEach(phim => {
+          lichChieu.forEach(item => {
+            if (phim.maPhim === item.maPhim && cumRap.maCumRap === item.rap_phim.maCumRap) {
+              const index = arrDanhSach.findIndex(danhSanh => danhSanh.maPhim === item.maPhim);
+              if (index === -1) {
+                const lstLichChieuTheoPhim = lichChieu
+                  .filter(lichChieu => lichChieu.maPhim === phim.maPhim && lichChieu.rap_phim.maCumRap === cumRap.maCumRap)
+                  .map(item2 => ({
+                    maLichChieu: item2.maLichChieu,
+                    giaVe: item2.giaVe,
+                    maRap: item2.rap_phim.maRap,
+                    tenRap: item2.rap_phim.tenRap,
+                    ngayChieuGioChieu: moment(item2.ngayChieuGioChieu).format(),
+                  }));
+                arrDanhSach.push({
+                  lstLichChieuTheoPhim,
+                  maPhim: phim.maPhim,
+                  tenPhim: phim.tenPhim,
+                  hinhAnh: phim.hinhAnh,
+                  dangChieu: phim.dangChieu,
+                  sapChieu: phim.sapChieu,
+                  hot: phim.hot,
+                });
+              }
+            }
+          });
+        });
+        danhSachPhim.push({
+          danhSachPhim: arrDanhSach,
+          diaChi: cumRap.diaChi,
+          tenCumRap: cumRap.tenCumRap,
+          maCumRap: cumRap.maCumRap,
+        });
+      });
 
       return {
-        lstCumRap: item.cum_rap.map(cumRap => {
-
-          return {
-            danhSachPhim: cumRap.rap_phim.flatMap(rapPhim => rapPhim.lich_chieu.filter(item => item.maPhim === item.phim.maPhim).map(lichChieu => {
-
-              return {
-                lstLichChieuTheoPhim: rapPhim.lich_chieu.filter(item => item.maPhim === lichChieu.phim.maPhim).flatMap(item => {
-                  if (item.maRap !== lichChieu.maRap) return
-                  return {
-                    maLichChieu: item.maLichChieu,
-                    giaVe: item.giaVe,
-                    maRap: rapPhim.maRap,
-                    tenRap: rapPhim.tenRap,
-                    ngayChieuGioChieu: item.ngayChieuGioChieu,
-                  }
-                }),
-                maPhim: lichChieu.phim.maPhim,
-                tenPhim: lichChieu.phim.tenPhim,
-                hinhAnh: lichChieu.phim.hinhAnh,
-                dangChieu: lichChieu.phim.dangChieu,
-                sapChieu: lichChieu.phim.sapChieu,
-                hot: lichChieu.phim.hot,
-              }
-            })),
-            diaChi: cumRap.diaChi,
-            tenCumRap: cumRap.tenCumRap,
-            maCumRap: cumRap.maCumRap,
-          }
-        }),
+        danhSachPhim,
         logo: item.logo,
         maHeThongRap: item.maHeThongRap,
         tenHeThongRap: item.tenHeThongRap,
-      }
-    })
+      };
+    });
 
-
-
-    return {
-      message: 'Xử lý thành công!',
-      statusCode: '200',
-      content: newData
-    };
+    return this.response(newData);
   }
 
   async getTheaterShowtimeInfor(id: number) {
-    if (!id) throw new NotFoundException('Không tìm thấy tài nguyên')
-    let phim = await this.prisma.phim.findFirst({
-      where: {
-        maPhim: id
-      }
+    if (!id) {
+      throw new NotFoundException('Không tìm thấy tài nguyên');
+    }
 
-    })
-    if(!phim) throw new NotFoundException('Phim không tồn tại')
-    const { maPhim, moTa, ngayKhoiChieu, sapChieu, dangChieu, danhGia, hinhAnh, hot, trailer, tenPhim } = phim
-    let heThong = await this.prisma.he_thong_rap.findMany({
+    const phim = await this.prisma.phim.findFirst({
+      where: {
+        maPhim: id,
+      },
       include: {
-        cum_rap: {
+        lich_chieu: {
           include: {
             rap_phim: {
               include: {
-                lich_chieu: {
-                  where: {
-                    maPhim
-                  }
-                }
-              }
+                cum_rap: {
+                  include: {
+                    he_thong_rap: true,
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    });
 
-            }
-          }
-        }
+    if (!phim) {
+      throw new NotFoundException('Phim không tồn tại');
+    }
+
+    const {
+      maPhim,
+      moTa,
+      ngayKhoiChieu,
+      sapChieu,
+      dangChieu,
+      danhGia,
+      hinhAnh,
+      hot,
+      trailer,
+      tenPhim,
+      lich_chieu,
+    } = phim;
+
+
+
+    const cumRapMap: Map<string, cum_rap> = new Map();
+    const rapPhimMap: Map<string, rap_phim> = new Map();
+    const heThongRapMap: Map<string, he_thong_rap> = new Map();
+    for (const lichChieuItem of lich_chieu) {
+      const rapPhim = lichChieuItem.rap_phim;
+
+      if (!rapPhimMap.has(`${rapPhim.maRap}`)) {
+        rapPhimMap.set(`${rapPhim.maRap}`, rapPhim);
       }
-    })
-    let lichChieu = heThong.flatMap(item => item.cum_rap.flatMap(cumRap => cumRap.rap_phim.flatMap(rapPhim => rapPhim.lich_chieu.flatMap(lichChieu => lichChieu))))
-    let filterLichChieu = lichChieu.map(item => item.maRap)
-    let rapPhim = heThong.flatMap(item => item.cum_rap.flatMap(cumRap => cumRap.rap_phim.flatMap(rapPhim => rapPhim).filter(item => filterLichChieu.includes(item.maRap))))
-    let filterRapPhim = rapPhim.map(item => item.maCumRap)
-    let cumRap = heThong.flatMap(item => item.cum_rap.flatMap(cumRap => cumRap).filter(item => filterRapPhim.includes(item.maCumRap)))
-    let filterCumRap = cumRap.map(item => item.maHeThongRap)
-    let heThongRap = heThong.flatMap(item => item).filter(item => filterCumRap.includes(item.maHeThongRap))
 
-    let data = {
-      heThongRapChieu: heThongRap.map(item => {
-        const { logo, maHeThongRap, tenHeThongRap } = item
-        return {
-          cumRapChieu: cumRap.map(cumRap => {
-            const { maCumRap, tenCumRap, diaChi, maHeThongRap } = cumRap
-            return {
-              lichChieuPhim: rapPhim.filter(item => item.maCumRap === maCumRap).flatMap(item => item.lich_chieu.flatMap(lichChieu => {
-                const { tenRap } = item
-                const { maLichChieu, maRap, ngayChieuGioChieu, giaVe } = lichChieu
-                return {
+      const cumRap = rapPhim.cum_rap;
+
+      if (!cumRapMap.has(cumRap.maCumRap)) {
+        cumRapMap.set(cumRap.maCumRap, cumRap);
+      }
+      const heThongRap = cumRap.he_thong_rap;
+
+      if (!heThongRapMap.has(heThongRap.maHeThongRap)) {
+        heThongRapMap.set(heThongRap.maHeThongRap, heThongRap);
+      }
+    }
+
+    const arrCum: cum_rap[] = Array.from(cumRapMap.values());
+    const arrRap: rap_phim[] = Array.from(rapPhimMap.values());
+    const arrHeThong: he_thong_rap[] = Array.from(heThongRapMap.values());
+
+    const heThongRapChieu = [];
+
+    for (const heThong of arrHeThong) {
+      const { logo, maHeThongRap, tenHeThongRap } = heThong;
+
+      const cumRapChieu = arrCum
+        .filter((cumRap) => cumRap.maHeThongRap === maHeThongRap)
+        .map((cumRap) => {
+          const { maCumRap, tenCumRap, diaChi } = cumRap;
+
+          const arrLich = [];
+
+          for (const rap of arrRap) {
+            const { tenRap, maRap } = rap;
+
+            if (maCumRap === rap.maCumRap) {
+              const lichChieuFilter = lich_chieu.filter(
+                (item) => item.maRap === maRap
+              );
+
+              for (const item of lichChieuFilter) {
+                const { maLichChieu, maRap, ngayChieuGioChieu, giaVe } = item;
+
+                arrLich.push({
                   maLichChieu,
                   maRap,
                   tenRap,
                   ngayChieuGioChieu,
                   giaVe,
-                }
-              })),
-              maCumRap,
-              tenCumRap,
-              diaChi,
+                });
+              }
             }
-          }),
-          logo,
-          tenHeThongRap,
-          maHeThongRap
-        }
+          }
 
-      }),
+          return {
+            lichChieuPhim: arrLich,
+            maCumRap,
+            tenCumRap,
+            diaChi,
+          };
+        });
+
+      heThongRapChieu.push({
+        cumRapChieu,
+        logo,
+        tenHeThongRap,
+        maHeThongRap,
+      });
+    }
+
+    const data = {
+      heThongRapChieu,
       tenPhim,
       maPhim,
       hinhAnh,
@@ -197,17 +260,11 @@ export class TheatersService {
       dangChieu,
       sapChieu,
       hot,
-    }
-
-    return {
-      message: 'Xử lý thành công!',
-      statusCode: '200',
-      content: data
     };
+
+    return this.response(data);
   }
 
 
 
-
-  
 }

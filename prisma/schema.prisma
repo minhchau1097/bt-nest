@@ -32,6 +32,7 @@ model ghe {
   tenGhe   String    @map("ten_ghe") @db.VarChar(50)
   loaiGhe  String    @map("loai_ghe") @db.VarChar(50)
   maRap    Int?      @map("ma_rap")
+  dat_ve   dat_ve[]
   rap_phim rap_phim? @relation(fields: [maRap], references: [maRap], onDelete: Cascade, onUpdate: NoAction, map: "ghe_ibfk_1")
 
   @@index([maRap], map: "ma_rap")
@@ -45,13 +46,14 @@ model he_thong_rap {
 }
 
 model nguoi_dung {
-  id            Int    @id @default(autoincrement())
-  taiKhoan      String @map("tai_khoan") @db.VarChar(50)
-  hoTen         String @map("ho_ten") @db.VarChar(50)
-  email         String @db.VarChar(100)
-  soDt          String @map("so_dt") @db.VarChar(15)
-  matKhau       String @map("mat_khau") @db.VarChar(255)
-  loaiNguoiDung String @default("CUSTOMER") @map("loai_nguoi_dung") @db.VarChar(50)
+  taiKhoan      String      @id @map("tai_khoan") @db.VarChar(50)
+  hoTen         String      @map("ho_ten") @db.VarChar(50)
+  email         String      @db.VarChar(100)
+  soDt          String      @map("so_dt") @db.VarChar(15)
+  matKhau       String      @map("mat_khau") @db.VarChar(255)
+  loaiNguoiDung String      @default("CUSTOMER") @map("loai_nguoi_dung") @db.VarChar(50)
+  binh_luan     binh_luan[]
+  dat_ve        dat_ve[]
 }
 
 model phim {
@@ -66,6 +68,7 @@ model phim {
   dangChieu     Boolean       @map("dang_chieu")
   sapChieu      Boolean       @map("sap_chieu")
   bannerPhim    banner_phim[]
+  binh_luan     binh_luan[]
   lich_chieu    lich_chieu[]
 }
 
@@ -86,9 +89,37 @@ model lich_chieu {
   maPhim            Int?      @map("ma_phim")
   ngayChieuGioChieu DateTime  @map("ngay_gio_chieu") @db.DateTime(0)
   giaVe             Float?    @map("gia_ve") @db.Float
+  dat_ve            dat_ve[]
   rap_phim          rap_phim? @relation(fields: [maRap], references: [maRap], onDelete: Cascade, onUpdate: NoAction, map: "lich_chieu_ibfk_1")
   phim              phim?     @relation(fields: [maPhim], references: [maPhim], onDelete: Cascade, onUpdate: NoAction, map: "lich_chieu_ibfk_2")
 
   @@index([maPhim], map: "ma_phim")
   @@index([maRap], map: "ma_rap")
+}
+
+model binh_luan {
+  maBinhLuan   Int         @id @default(autoincrement()) @map("ma_binh_luan")
+  maPhim       Int?        @map("ma_phim")
+  taiKhoan     String?     @map("tai_khoan") @db.VarChar(50)
+  ngayBinhLuan DateTime    @map("ngay_binh_luan") @db.DateTime(0)
+  noiDung      String      @map("noi_dung") @db.Text
+  phim         phim?       @relation(fields: [maPhim], references: [maPhim], onDelete: Cascade, onUpdate: NoAction, map: "binh_luan_ibfk_1")
+  nguoi_dung   nguoi_dung? @relation(fields: [taiKhoan], references: [taiKhoan], onDelete: Cascade, onUpdate: NoAction, map: "binh_luan_ibfk_2")
+
+  @@index([maPhim], map: "ma_phim")
+  @@index([taiKhoan], map: "tai_khoan")
+}
+
+model dat_ve {
+  maVe        Int         @id @default(autoincrement()) @map("ma_ve")
+  taiKhoan    String?     @map("tai_khoan") @db.VarChar(50)
+  maLichChieu Int?        @map("ma_lich_chieu")
+  maGhe       Int?        @map("ma_ghe")
+  nguoi_dung  nguoi_dung? @relation(fields: [taiKhoan], references: [taiKhoan], onDelete: Cascade, onUpdate: NoAction, map: "dat_ve_ibfk_1")
+  lich_chieu  lich_chieu? @relation(fields: [maLichChieu], references: [maLichChieu], onDelete: Cascade, onUpdate: NoAction, map: "dat_ve_ibfk_2")
+  ghe         ghe?        @relation(fields: [maGhe], references: [maGhe], onDelete: Cascade, onUpdate: NoAction, map: "dat_ve_ibfk_3")
+
+  @@index([maGhe], map: "ma_ghe")
+  @@index([maLichChieu], map: "ma_lich_chieu")
+  @@index([taiKhoan], map: "tai_khoan")
 }

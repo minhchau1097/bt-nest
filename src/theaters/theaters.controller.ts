@@ -1,51 +1,46 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, Query } from '@nestjs/common';
+import { Controller, Get, Query, UseFilters, UseGuards } from '@nestjs/common';
 import { TheatersService } from './theaters.service';
-import { CreateTheaterDto } from './dto/create-theater.dto';
-import { UpdateTheaterDto } from './dto/update-theater.dto';
-import { ApiOkResponse, ApiProperty, ApiQuery, ApiResponse, ApiTags } from '@nestjs/swagger';
-class UserDto {
-  @ApiProperty()
-  id: number;
-
-  @ApiProperty()
-  name: string;
-}
+import { ApiBearerAuth, ApiOkResponse, ApiProperty, ApiQuery, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { HttpExceptionFilter } from 'src/exception/http-exception.filter';
+import { AuthGuard } from '@nestjs/passport';
+@ApiBearerAuth()
+@UseGuards(AuthGuard('jwt'))
 @ApiTags('QuanLyRap')
 @Controller('api/QuanLyRap')
+@UseFilters(HttpExceptionFilter)
 export class TheatersController {
-  constructor(private readonly theatersService: TheatersService) {}
+  constructor(private readonly theatersService: TheatersService) { }
 
- 
+
   @Get('LayThongTinHeThongRap')
   @ApiQuery({
-   name:'maHeThongRap', required:false
+    name: 'maHeThongRap', required: false
   })
-  // @ApiOkResponse({
-  //   status:200,description:'Xử lý thành công',type:[UserDto] ,content:{}
-  // })
-  getTheaterSystem(@Query('maHeThongRap') id:string) {
-    return this.theatersService.getTheaterSystem(id);
+  getTheaterSystem(@Query('maHeThongRap') id: string) {
+    try {
+      return this.theatersService.getTheaterSystem(id);
+    } catch (err) { }
   }
   @Get('LayThongTinCumRapTheoHeThong')
-  // @ApiQuery({
-  //  name:'maHeThongRap', required:true
-  // })
-  // @ApiOkResponse({
-  //   status:200,description:'Xử lý thành công',type:[UserDto] ,content:{}
-  // })
-  getTheaterCluster(@Query('maHeThongRap') id:string) {
-    return this.theatersService.getTheaterCluster(id);
+  getTheaterCluster(@Query('maHeThongRap') id: string) {
+    try {
+      return this.theatersService.getTheaterCluster(id);
+    } catch (err) { }
   }
-  @ApiQuery({name:'maHeThongRap',required:false})
+  @ApiQuery({ name: 'maHeThongRap', required: false })
   @Get('LayThongTinLichChieuHeThongRap')
-  getTheaterShowtimes(@Query('maHeThongRap') id:string) {
-    return this.theatersService.getTheaterShowtimes(id);
+  getTheaterShowtimes(@Query('maHeThongRap') id: string) {
+    try {
+      return this.theatersService.getTheaterShowtimes(id);
+    } catch (err) { }
   }
-  @ApiQuery({name:'maPhim',required:false})
+  @ApiQuery({ name: 'maPhim', required: false })
   @Get('LayThongTinLichChieuPhim')
-  getTheaterShowtimeInfor(@Query('maPhim') id:number) {
-    return this.theatersService.getTheaterShowtimeInfor(+id);
+  getTheaterShowtimeInfor(@Query('maPhim') id: number) {
+    try {
+      return this.theatersService.getTheaterShowtimeInfor(+id);
+    } catch (err) { }
   }
- 
-   
+
+
 }

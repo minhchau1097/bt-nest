@@ -1,15 +1,37 @@
-import { ApiProperty } from "@nestjs/swagger"
+import { ApiBody, ApiExtraModels, ApiProperty, getSchemaPath } from "@nestjs/swagger"
 import { IsNotEmpty } from "class-validator"
-
-export class CreateBookingtiketDto { }
-export class CreateShowtime {
+export class Ticket {
     @ApiProperty()
-    @IsNotEmpty({
-        message: 'maPhim không được rỗng'
+    @IsNotEmpty()
+    maGhe: number
+    @ApiProperty()
+    @IsNotEmpty()
+    giaVe: number
+}
+@ApiExtraModels(Ticket)
+export class CreateBookingtiketDto {
+
+    @ApiProperty()
+    @IsNotEmpty()
+    maLichChieu: number
+    @ApiProperty({
+        type: 'array',
+        items:{
+            allOf:[
+                {$ref:getSchemaPath(Ticket)}
+            ]
+        }
     })
+    @IsNotEmpty()
+    danhSachVe: Ticket[]
+}
+
+export class CreateShowtimeDto {
+    @ApiProperty()
+    @IsNotEmpty()
     maPhim: number
     @ApiProperty()
-    @IsNotEmpty({})
+    @IsNotEmpty()
     ngayChieuGioChieu: string
     @ApiProperty()
     @IsNotEmpty()

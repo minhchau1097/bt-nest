@@ -1,8 +1,9 @@
-import { HttpException, Injectable, NotFoundException } from '@nestjs/common';
-import { PrismaService } from 'src/prisma.service';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { PrismaService } from 'prisma/prisma.service';
 import * as bcrypt from 'bcrypt';
 import { User } from './entities/user.entity';
 import { AppService } from 'src/app.service';
+import { UpdateUserDto } from './dto/update-user.dto';
 
 
 @Injectable()
@@ -20,7 +21,7 @@ export class UsersService extends AppService {
         }
       }
     })
-    return data;
+    return this.response(data);
   }
   async findUser(tuKhoa: string = '') {
     let data = await this.prisma.nguoi_dung.findMany({
@@ -30,7 +31,7 @@ export class UsersService extends AppService {
         }
       }
     })
-    return data;
+    return this.response(data);
   }
   async getUserPage(tuKhoa: string = '', soTrang: number = 1, soPhanTuTrenTrang: number = 20) {
     let index = Number((soTrang - 1)) * Number(soPhanTuTrenTrang);
@@ -43,11 +44,11 @@ export class UsersService extends AppService {
       skip: index,
       take: Number(soPhanTuTrenTrang)
     })
-    return data;
+    return this.response(data);
   }
   async findUserPage(tuKhoa: string = '', soTrang: number = 1, soPhanTuTrenTrang: number = 20) {
-    if (soTrang <= 0) throw new HttpException('lỗi', 404)
-    if (soPhanTuTrenTrang <= 0) return 'Số phần tử trên trang không hợp lệ'
+    if (soTrang <= 0) throw new BadRequestException('Số trang không hợp lệ')
+    if (soPhanTuTrenTrang <= 0) throw new BadRequestException('Số phần tử trên trang không hợp lệ')
     let index = Number((soTrang - 1)) * Number(soPhanTuTrenTrang);
     let data = await this.prisma.nguoi_dung.findMany({
       where: {
@@ -58,132 +59,203 @@ export class UsersService extends AppService {
       skip: index,
       take: Number(soPhanTuTrenTrang)
     })
-    return data;
+    return this.response(data);
   }
   async inforUser(user: User) {
     let data = await this.prisma.nguoi_dung.findFirst({
       where: {
-        id: user.id,
         taiKhoan: user.taiKhoan
       }
     })
-    const { matKhau, ...updateData } = data;
-
-    return updateData
-  }
-  async getInforUser(user: User, value: string) {
-    try {
-      let taiKhoan = this.trimValue(value)
-      const data = await this.prisma.nguoi_dung.findMany({
+    const { taiKhoan, matKhau, ...updateData } = data;
+    const [account, phim] = await Promise.all([
+      this.prisma.dat_ve.findMany({
         where: {
-          taiKhoan: {
-            contains: taiKhoan
+          taiKhoan
+        },
+        include: {
+          ghe: {
+            include: {
+              rap_phim: {
+                include: {
+                  cum_rap: {
+                    include: {
+                      he_thong_rap: true
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }),
+      this.prisma.dat_ve.findMany({
+        where: {
+          taiKhoan
+        },
+        include: {
+          lich_chieu: {
+            include: {
+              phim: true
+            }
           }
         }
       })
-      if (data.length <= 0) throw new HttpException('Tài khoản không hợp lệ', 404)
-      const newData = data?.map((item) => {
-        const { matKhau, ...newItem } = item
-        return newItem
-      })
-      return newData
-    } catch (err) {
-      return err.message
+    ])
+    const thongTinDatVe = []
+    for (const key of phim) {
+      const danhSachGhe = []
+      const lichChieu = key.lich_chieu;
+      const phim = lichChieu.phim;
+      if (key.lich_chieu.maPhim === phim.maPhim) {
+        for (const item of account) {
+          const index = danhSachGhe.findIndex(filter => filter.maGhe === item.maGhe)
+
+          const ghe = item.ghe;
+          const rapPhim = ghe.rap_phim;
+          const cumRap = rapPhim.cum_rap;
+          const heThong = cumRap.he_thong_rap
+          if (item.maVe === key.maVe) {
+            danhSachGhe.push({
+              maHeThongRap: heThong.maHeThongRap,
+              tenHeThongRap: heThong.tenHeThongRap,
+              maCumRap: cumRap.maCumRap,
+              tenCumRap: cumRap.tenCumRap,
+              maRap: rapPhim.maRap,
+              tenRap: rapPhim.tenRap,
+              maGhe: ghe.maGhe,
+              tenGhe: ghe.tenGhe,
+            })
+          }
+        }
+        thongTinDatVe.push({
+          danhSachGhe,
+          giaVe: lichChieu.giaVe,
+          hinhAnh: phim.hinhAnh,
+          maVe: key.maVe,
+          tenPhim: phim.tenPhim,
+
+        })
+
+      }
+
     }
+    let newData = {
+      updateData,
+      thongTinDatVe
+    }
+    return this.response(newData, 201)
+  }
+  async getInforUser(user: User, value: string) {
+    let taiKhoan = this.trimValue(value)
+    const data = await this.prisma.nguoi_dung.findMany({
+      where: {
+        taiKhoan: {
+          contains: taiKhoan
+        }
+      }
+    })
+    if (data.length <= 0) throw new NotFoundException('Tài khoản không tồn tại')
+    const newData = data?.map((item) => {
+      const { matKhau, ...newItem } = item
+      return newItem
+    })
+    return this.response(newData, 201);
   }
   async addUser(user: User) {
+    const { taiKhoan, loaiNguoiDung } = user;
     const status = await this.prisma.nguoi_dung.findFirst({
       where: {
-        AND: [
-          { id: user.id },
-          { taiKhoan: user.taiKhoan }
-        ]
+        taiKhoan
       }
     })
     if (!status) {
-      let passBcrypt = bcrypt.hashSync(user.matKhau, 10)
-      let data = { ...user, matKhau: passBcrypt }
-      await this.prisma.nguoi_dung.create({ data })
-      return 'Thêm mới thành công'
-
+      const type = loaiNguoiDung.toLowerCase()
+      if (type === 'admin' || type === 'customer') {
+        let passBcrypt = bcrypt.hashSync(user.matKhau, 10)
+        let data = { ...user, matKhau: passBcrypt, loaiNguoiDung: type.toUpperCase() }
+        await this.prisma.nguoi_dung.create({ data })
+        return this.response('Thêm mới thành công', 201)
+      }
+      throw new BadRequestException('Loại người dùng không hợp lệ')
     }
-    return 'Tài khoản đã tồn tại'
+    throw new BadRequestException('Tài khoản đã tồn tại')
   }
-  async updateUserAd(user: User) {
+  async updateUserAd(user: UpdateUserDto) {
+    const { taiKhoan, loaiNguoiDung } = user;
+
     const status = await this.prisma.nguoi_dung.findFirst({
       where: {
-        AND: [
-          { id: user.id },
-          { taiKhoan: user.taiKhoan }
-        ]
+
+        taiKhoan
+
       }
     })
     if (status) {
-      let passBcrypt = bcrypt.hashSync(user.matKhau, 10)
-      let data = { ...user, matKhau: passBcrypt }
-      await this.prisma.nguoi_dung.update({
-        where: {
-          id: status.id
-        },
-        data
-      })
-      return 'Cập nhật thành công'
-    }
-    return 'Tài khoản không tồn tại'
-  }
-  async updateUser(user: User) {
-    let data = this.trimObjectValues(user);
-    const { id, taiKhoan, hoTen, email, soDt, matKhau, loaiNguoiDung } = data;
-    if (!taiKhoan) return 'Tài khoản không tồn tại'
-    if (!hoTen) return 'Họ tên không được rỗng'
-    if (!email) return 'Email không được rỗng'
-    if (!soDt) return 'Số điện thoại không được rỗng'
-    if (!matKhau) return 'Mật khẩu không được rỗng'
-    if (!loaiNguoiDung) return 'Loại người dùng không được rỗng'
-    if (loaiNguoiDung !== 'ADMIN' && loaiNguoiDung !== 'CUSTOMER') {
-      return 'Loại người dùng chỉ có 2 giá trị ADMIN và CUSTOMER'
+      const type = loaiNguoiDung.toLowerCase()
+      if (type === 'admin' || type === 'customer') {
 
-    }
-    const status = await this.prisma.nguoi_dung.findFirst({
-      where: {
-        AND: [
-          { id },
-          { taiKhoan }
-        ]
+        let passBcrypt = bcrypt.hashSync(user.matKhau, 10)
+        let data = { ...user, matKhau: passBcrypt, loaiNguoiDung: type.toUpperCase() }
+        await this.prisma.nguoi_dung.update({
+          where: {
+            taiKhoan: status.taiKhoan
+          },
+          data
+        })
+        return this.response('Cập nhật thành công', 201)
       }
-    })
-    if (status) {
-      let passBcrypt = bcrypt.hashSync(matKhau, 10)
-      let data = { ...user, matKhau: passBcrypt }
-      await this.prisma.nguoi_dung.update({
-        where: {
-          id: status.id
-        },
-        data
-      })
-      return 'Cập nhật thành công'
+      throw new BadRequestException('Loại người dùng không hợp lệ')
     }
-    return 'Tài khoản không tồn tại'
+    throw new NotFoundException('Tài khoản không tồn tại')
+  }
+  async updateUser(user: UpdateUserDto) {
+    const { taiKhoan, matKhau, loaiNguoiDung } = user;
+    const type = loaiNguoiDung.toLowerCase()
+    if (type === 'admin' || type === 'customer') {
+      const status = await this.prisma.nguoi_dung.findFirst({
+        where: {
+
+          taiKhoan
+
+        }
+      })
+      if (status) {
+        let passBcrypt = bcrypt.hashSync(matKhau, 10)
+        let data = { ...user, matKhau: passBcrypt, loaiNguoiDung: type.toUpperCase() }
+        await this.prisma.nguoi_dung.update({
+          where: {
+            taiKhoan: status.taiKhoan
+          },
+          data
+        })
+        return this.response('Cập nhật thành công', 201)
+      } else {
+
+        throw new NotFoundException('Tài khoản không tồn tại')
+      }
+    }
+    throw new BadRequestException('Loại người dùng không hợp lệ')
   }
   async deleteUser(value: string) {
     let taiKhoan = this.trimValue(value);
-    console.log('tai khoan' + taiKhoan)
     let user = await this.prisma.nguoi_dung.findFirst({
       where: {
         taiKhoan
       }
     })
     if (user) {
-      let status = await this.prisma.nguoi_dung.delete({
+      await this.prisma.nguoi_dung.delete({
         where: {
-          id: user.id
+          taiKhoan: user.taiKhoan
         }
       })
-      return 'Xoá thành công'
+      return this.response('Xoá thành công')
 
 
     } else {
-      return 'Tài khoản không tồn tại'
+      throw new NotFoundException('Tài khoản không tồn tại')
     }
   }
+
 }
