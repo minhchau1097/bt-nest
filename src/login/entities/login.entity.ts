@@ -7,5 +7,5 @@ export class LoginUser {
     taiKhoan: string;
     @ApiProperty()
     @IsNotEmpty()
-    matKhau: string;
-}
+    matKhau: string; 
+} 
