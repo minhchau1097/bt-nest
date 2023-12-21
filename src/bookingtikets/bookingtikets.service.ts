@@ -1,4 +1,4 @@
-import { Injectable, InternalServerErrorException, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, InternalServerErrorException, NotFoundException } from '@nestjs/common';
 import { CreateBookingtiketDto, CreateShowtimeDto, Ticket } from './dto/create-bookingtiket.dto';
 import { PrismaService } from 'prisma/prisma.service';
 import { AppService } from 'src/app.service';
@@ -14,6 +14,18 @@ export class BookingtiketsService extends AppService {
     super()
   }
   async createShowtime({ maPhim, giaVe, ngayChieuGioChieu, maRap }) {
+    const phim = await this.prisma.phim.findFirst({
+      where:{
+        maPhim
+      }
+    })
+    if(!phim) throw new BadRequestException('Phim không tồn tại')
+    const rap = await this.prisma.rap_phim.findFirst({
+      where:{
+        maRap
+      }
+    })
+    if(!rap) throw new BadRequestException('Mã rạp không tồn tại')
     let data = {
       maPhim,
       ngayChieuGioChieu: moment(ngayChieuGioChieu).format(),
@@ -27,13 +39,13 @@ export class BookingtiketsService extends AppService {
   }
 
   async getListBooking(id: number) {
-    if (!id) throw new InternalServerErrorException('Mã lịch chiếu không tồn tại')
+    if (!id) throw new NotFoundException('Mã lịch chiếu không tồn tại')
     const lichChieu = await this.prisma.lich_chieu.findFirst({
       where: {
         maLichChieu: id
       }
     })
-    if (!lichChieu) throw new NotFoundException('Lịch chiếu không tồn tại')
+    if (!lichChieu) throw new BadRequestException('Lịch chiếu không tồn tại')
 
     const { maRap, maLichChieu, maPhim, ngayChieuGioChieu, giaVe } = lichChieu
     const phim = await this.prisma.phim.findFirst({
@@ -110,7 +122,7 @@ export class BookingtiketsService extends AppService {
         maLichChieu
       }
     })
-    if (!status) throw new InternalServerErrorException('Mã lịch chiếu không tồn tại')
+    if (!status) throw new BadRequestException('Mã lịch chiếu không tồn tại')
     let arr = []
     const data = await this.prisma.dat_ve.findMany()
     danhSachVe.forEach(list => {
@@ -123,7 +135,6 @@ export class BookingtiketsService extends AppService {
       data: arr,
       skipDuplicates: true
     })
-    console.log(arr)
     return this.response('Đặt vé thành công', 201)
 
   }

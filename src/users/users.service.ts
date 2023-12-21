@@ -16,7 +16,7 @@ export class UsersService extends AppService {
   async getUser(tuKhoa: string = '') {
     let data = await this.prisma.nguoi_dung.findMany({
       where: {
-        email: {
+        taiKhoan: {
           contains: tuKhoa
         }
       }
@@ -26,7 +26,7 @@ export class UsersService extends AppService {
   async findUser(tuKhoa: string = '') {
     let data = await this.prisma.nguoi_dung.findMany({
       where: {
-        email: {
+        taiKhoan: {
           contains: tuKhoa
         }
       }
@@ -37,7 +37,7 @@ export class UsersService extends AppService {
     let index = Number((soTrang - 1)) * Number(soPhanTuTrenTrang);
     let data = await this.prisma.nguoi_dung.findMany({
       where: {
-        email: {
+        taiKhoan: {
           contains: tuKhoa
         }
       },

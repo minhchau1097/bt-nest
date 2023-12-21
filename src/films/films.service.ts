@@ -159,7 +159,7 @@ export class FilmsService extends AppService {
         maPhim: data.maPhim
       }
     })
-    return this.response(data)
+    return this.response('Xoá thành công')
   }
   async getInforFilm(maPhim: number) {
     maPhim = Number(maPhim);

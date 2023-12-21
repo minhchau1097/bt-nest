@@ -33,6 +33,12 @@ export class CommentsService extends AppService {
       }
     })
     if (!phim) throw new BadRequestException('Phim không tồn tại')
+    const user = await this.prisma.nguoi_dung.findFirst({
+      where: {
+        taiKhoan
+      }
+    })
+    if (!user) throw new BadRequestException('Tài khoản không tồn tại')
     const data = {
       taiKhoan,
       maPhim,
