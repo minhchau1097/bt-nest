@@ -5,7 +5,7 @@ services:
     container_name: mysql_db
     environment:
       - MYSQL_ROOT_PASSWORD=1234
-      - MYSQL_DATABASE=bt_nest
+      - MYSQL_DATABASE=db_capstone
     ports:
       - 3306:3306
     volumes:
