@@ -13,9 +13,7 @@ export class User {
     hoTen: string;
     @ApiProperty()
     @IsNotEmpty()
-    @IsEmail({}, {
-        message: 'Email không hợp lệ'
-    })
+    @IsEmail()
     email: string;
     @ApiProperty()
     @IsNotEmpty()

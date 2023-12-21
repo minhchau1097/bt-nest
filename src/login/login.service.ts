@@ -1,4 +1,4 @@
-import { Injectable, InternalServerErrorException } from '@nestjs/common';
+import { BadRequestException, Injectable, InternalServerErrorException } from '@nestjs/common';
 import { AppService } from 'src/app.service';
 import { PrismaService } from 'prisma/prisma.service';
 import { JwtService } from '@nestjs/jwt';
@@ -15,7 +15,7 @@ export class LoginService extends AppService {
         taiKhoan
       }
     })
-    if (!status) throw new InternalServerErrorException('Email không đúng')
+    if (!status) throw new BadRequestException('Tài khoản không đúng')
     if (bcrypt.compareSync(matKhau, status.matKhau)) {
       let data = {
         taiKhoan: status.taiKhoan,
@@ -27,7 +27,7 @@ export class LoginService extends AppService {
       let token = await this.jwtService.signAsync({ data });
       return this.response(token, 201)
     } else {
-      throw new InternalServerErrorException('Mật khẩu không đúng')
+      throw new BadRequestException('Mật khẩu không đúng')
     }
   }
 
