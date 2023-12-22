@@ -75,7 +75,8 @@ export class FilmsService extends AppService {
 
   }
   async updateFilms(file: Express.Multer.File, body: UpdateFilmDto) {
-    let { tenPhim, trailer, moTa, ngayKhoiChieu, dangChieu, danhGia, hot, sapChieu } = body
+    let {maPhim, tenPhim, trailer, moTa, ngayKhoiChieu, dangChieu, danhGia, hot, sapChieu } = body
+    maPhim = Number(maPhim)
     danhGia = Number(danhGia);
     let _hot = this.parseBoolean(`${hot}`)
     let _dangChieu = this.parseBoolean(`${dangChieu}`)
@@ -84,7 +85,7 @@ export class FilmsService extends AppService {
 
     let status = await this.prisma.phim.findFirst({
       where: {
-        tenPhim
+        maPhim
       }
     })
     if (!status) throw new NotFoundException('Phim không tồn tại')
@@ -100,15 +101,15 @@ export class FilmsService extends AppService {
         .toFile(path.join(process.cwd() + '/public/img', fileName));
     }
     let data = {
-      tenPhim: tenPhim ? tenPhim : status.tenPhim,
-      trailer: trailer ? trailer : status.trailer,
+      tenPhim,
+      trailer,
       hinhAnh: file ? fileName : status.hinhAnh,
-      moTa: moTa ? moTa : status.moTa,
-      ngayKhoiChieu: ngayKhoiChieu ? moment(ngayKhoiChieu).format() : status.ngayKhoiChieu,
-      danhGia: danhGia ? danhGia : status.danhGia,
-      hot: hot ? _hot : status.hot,
-      dangChieu: dangChieu ? _dangChieu : status.dangChieu,
-      sapChieu: sapChieu ? _sapChieu : status.sapChieu,
+      moTa,
+      ngayKhoiChieu: moment(ngayKhoiChieu).format(),
+      danhGia,
+      hot: _hot,
+      dangChieu: _dangChieu,
+      sapChieu: _sapChieu,
     }
     const phim = await this.prisma.phim.update({
       where: {
