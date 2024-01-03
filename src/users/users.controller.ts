@@ -5,8 +5,7 @@ import { ApiQuery, ApiBearerAuth, ApiTags, ApiBody, } from '@nestjs/swagger';
 import { AuthGuard } from '@nestjs/passport';
 import { HttpExceptionFilter } from 'src/exception/http-exception.filter';
 import { UpdateUserDto } from './dto/update-user.dto';
-@ApiBearerAuth()
-@UseGuards(AuthGuard('jwt'))
+
 @ApiTags('QuanLyNguoiDung')
 @Controller('api/QuanLyNguoiDung')
 @UseFilters(HttpExceptionFilter)
@@ -65,6 +64,8 @@ export class UsersController {
       return this.usersService.findUserPage(tuKhoa, soTrang, soPhanTuTrenTrang);
     } catch (err) { }
   }
+  @ApiBearerAuth()
+  @UseGuards(AuthGuard('jwt'))
   @Post('ThongTinTaiKhoan')
   inforUser(@Request() req) {
     try {
@@ -72,6 +73,8 @@ export class UsersController {
       return this.usersService.inforUser(tokenDecode.data)
     } catch (err) { }
   }
+  @ApiBearerAuth()
+  @UseGuards(AuthGuard('jwt'))
   @Post('LayThongTinNguoiDung')
   @ApiQuery({ name: 'taiKhoan', required: false })
   getInforUser(@Request() req, @Query('taiKhoan') taiKhoan: string) {
@@ -80,6 +83,8 @@ export class UsersController {
       return this.usersService.getInforUser(tokenDecode.data, taiKhoan)
     } catch (err) { }
   }
+  @ApiBearerAuth()
+  @UseGuards(AuthGuard('jwt'))
   @Post('ThemNguoiDung')
   @ApiBody({
     type: CreateUserDto
@@ -89,6 +94,8 @@ export class UsersController {
       return this.usersService.addUser(body)
     } catch (err) { }
   }
+  @ApiBearerAuth()
+  @UseGuards(AuthGuard('jwt'))
   @Put('CapNhatThongTinNguoiDung')
   @ApiBody({
     type: UpdateUserDto
@@ -98,6 +105,8 @@ export class UsersController {
       return this.usersService.updateUserAd(body)
     } catch (err) { }
   }
+  @ApiBearerAuth()
+  @UseGuards(AuthGuard('jwt'))
   @Post('CapNhatThongTinNguoiDung')
   @ApiBody({
     type: UpdateUserDto
@@ -107,6 +116,8 @@ export class UsersController {
       return this.usersService.updateUser(body)
     } catch (err) { }
   }
+  @ApiBearerAuth()
+  @UseGuards(AuthGuard('jwt'))
   @Delete('XoaNguoiDung')
   deleteUser(@Query('taiKhoan') taiKhoan: string) {
     try {

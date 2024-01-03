@@ -1,10 +1,8 @@
-import { Controller, Get, Query, UseFilters, UseGuards } from '@nestjs/common';
+import { Controller, Get, Query, UseFilters } from '@nestjs/common';
 import { TheatersService } from './theaters.service';
-import { ApiBearerAuth, ApiOkResponse, ApiProperty, ApiQuery, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { ApiQuery, ApiTags } from '@nestjs/swagger';
 import { HttpExceptionFilter } from 'src/exception/http-exception.filter';
-import { AuthGuard } from '@nestjs/passport';
-@ApiBearerAuth()
-@UseGuards(AuthGuard('jwt'))
+
 @ApiTags('QuanLyRap')
 @Controller('api/QuanLyRap')
 @UseFilters(HttpExceptionFilter)

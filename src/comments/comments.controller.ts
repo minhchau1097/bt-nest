@@ -5,8 +5,7 @@ import { ApiBearerAuth, ApiBody, ApiParam, ApiQuery, ApiTags } from '@nestjs/swa
 import { Body, Controller, Delete, Get, Param, Post, Put, Query, UseFilters, UseGuards } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { HttpExceptionFilter } from 'src/exception/http-exception.filter';
-// @ApiBearerAuth()
-// @UseGuards(AuthGuard('jwt'))
+
 @ApiTags('QuanLyBinhLuan')
 @Controller('api/QuanLyBinhLuan')
 @UseFilters(HttpExceptionFilter)
@@ -23,7 +22,9 @@ export class CommentsController {
 
     }
   }
-  @Post('ThemBinhLuan') 
+  @ApiBearerAuth()
+  @UseGuards(AuthGuard('jwt'))
+  @Post('ThemBinhLuan')
   @ApiBody({
     type: CreateCommentDto
   })
@@ -34,6 +35,8 @@ export class CommentsController {
 
     }
   }
+  @ApiBearerAuth()
+  @UseGuards(AuthGuard('jwt'))
   @Put('SuaBinhLuan')
   @ApiBody({
     type: UpdateCommentDto
@@ -45,6 +48,8 @@ export class CommentsController {
 
     }
   }
+  @ApiBearerAuth()
+  @UseGuards(AuthGuard('jwt'))
   @Delete('XoaBinhLuan')
   @ApiQuery({
     name: 'maBinhLuan'

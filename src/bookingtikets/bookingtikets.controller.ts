@@ -9,13 +9,14 @@ import { AuthGuard } from '@nestjs/passport';
 @ApiTags('QuanLyDatVe')
 @Controller('api/QuanLyDatVe')
 @UseFilters(HttpExceptionFilter)
-@ApiBearerAuth()
-@UseGuards(AuthGuard('jwt'))
+
 export class BookingtiketsController {
   constructor(private readonly bookingtiketsService: BookingtiketsService) { }
   @ApiBody({
     type: CreateShowtimeDto,
   })
+  @ApiBearerAuth()
+  @UseGuards(AuthGuard('jwt'))
   @Post('TaoLichChieu')
   createShowtime(@Body() body: CreateShowtimeDto) {
     try {
@@ -36,6 +37,8 @@ export class BookingtiketsController {
   @ApiBody({
     type: CreateBookingtiketDto
   })
+  @ApiBearerAuth()
+  @UseGuards(AuthGuard('jwt'))
   @Post('DatVe')
   bookingTickets(@Request() req, @Body() body: CreateBookingtiketDto) {
     try {

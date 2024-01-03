@@ -6,8 +6,7 @@ import { UpdateFilmDto } from './dto/update-film.dto';
 import { HttpExceptionFilter } from 'src/exception/http-exception.filter';
 import { Film } from './entities/film.entity';
 import { AuthGuard } from '@nestjs/passport';
-@ApiBearerAuth()
-@UseGuards(AuthGuard('jwt'))
+
 @ApiTags('QuanLyPhim')
 @Controller('api/QuanLyPhim')
 @UseFilters(HttpExceptionFilter)
@@ -89,6 +88,8 @@ export class FilmsController {
       return this.filmsService.getInforFilm(maPhim)
     } catch (err) { }
   }
+  @ApiBearerAuth()
+  @UseGuards(AuthGuard('jwt'))
   @Post('ThemPhimUploadHinh')
   @ApiConsumes('multipart/form-data')
   @ApiBody({ type: Film })
@@ -98,6 +99,8 @@ export class FilmsController {
       return this.filmsService.addFilms(file, body);
     } catch (err) { }
   }
+  @ApiBearerAuth()
+  @UseGuards(AuthGuard('jwt'))
   @Post('CapNhatPhimUpload')
   @ApiConsumes('multipart/form-data')
   @ApiBody({ type: UpdateFilmDto })
@@ -107,6 +110,8 @@ export class FilmsController {
       return this.filmsService.updateFilms(file, body);
     } catch (err) { }
   }
+  @ApiBearerAuth()
+  @UseGuards(AuthGuard('jwt'))
   @Delete('XoaPhim')
   deleteFilms(@Query('maPhim') maPhim: number) {
     try {
