@@ -21,10 +21,10 @@ export class AppService {
     return value.toLowerCase() === "true";
   }
   
-  response(data: any, code:number = 200, message = 'Xử lý thành công!') {
+  response(data: any, statusCode = 200, message = 'Xử lý thành công!') {
     return {
       message,
-      statusCode: code,
+      statusCode,
       content: data
     }
   }

@@ -140,6 +140,7 @@ export class BookingtiketsService extends AppService {
   }
   async choosingSeats(seat: Seat) {
     const { maGhe, tenGhe, maRap, taiKhoanNguoiDat, id } = seat
+    if(!seat) return
     let data = {
       maGhe,
       tenGhe,
