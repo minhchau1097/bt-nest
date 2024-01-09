@@ -77,7 +77,7 @@ export class TheatersService extends AppService {
     ]);
 
     const newData = data.map(item => {
-      const danhSachPhim = [];
+      const lstCumRap = [];
       item.cum_rap.forEach(cumRap => {
         const arrDanhSach = [];
         phim.forEach(phim => {
@@ -107,7 +107,7 @@ export class TheatersService extends AppService {
             }
           });
         });
-        danhSachPhim.push({
+        lstCumRap.push({
           danhSachPhim: arrDanhSach,
           diaChi: cumRap.diaChi,
           tenCumRap: cumRap.tenCumRap,
@@ -116,7 +116,7 @@ export class TheatersService extends AppService {
       });
 
       return {
-        danhSachPhim,
+        lstCumRap,
         logo: item.logo,
         maHeThongRap: item.maHeThongRap,
         tenHeThongRap: item.tenHeThongRap,

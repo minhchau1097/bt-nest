@@ -15,7 +15,7 @@ export class Film {
     moTa: string;
     @ApiProperty()
     @IsNotEmpty()
-    @IsDateString()
+    // @IsDateString()
     ngayKhoiChieu: string;
     @ApiProperty({ type: Number })
     @IsNotEmpty()

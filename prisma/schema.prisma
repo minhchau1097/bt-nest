@@ -62,7 +62,7 @@ model phim {
   trailer       String        @db.VarChar(255)
   hinhAnh       String        @map("hinh_anh") @db.VarChar(255)
   moTa          String        @map("mo_ta") @db.Text
-  ngayKhoiChieu DateTime      @map("ngay_khoi_chieu") @db.DateTime(0)
+  ngayKhoiChieu DateTime      @map("ngay_khoi_chieu") @db.Date
   danhGia       Int           @map("danh_gia")
   hot           Boolean
   dangChieu     Boolean       @map("dang_chieu")

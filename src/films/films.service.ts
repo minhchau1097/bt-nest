@@ -31,7 +31,7 @@ export class FilmsService extends AppService {
       }
     })
     const newData = data.map(item => {
-      return { ...item, ngayKhoiChieu: moment(item.ngayKhoiChieu).format() }
+      return { ...item, ngayKhoiChieu: moment(item.ngayKhoiChieu).format('DD-MM-YYYY') }
     })
     return this.response(newData)
 
@@ -39,20 +39,17 @@ export class FilmsService extends AppService {
   async addFilms(file: Express.Multer.File, body: Film) {
     let { tenPhim, trailer, moTa, ngayKhoiChieu, dangChieu, danhGia, hot, sapChieu } = body
     danhGia = Number(danhGia);
-    let _hot = this.parseBoolean(`${hot}`)
+    let _hot = this.parseBoolean(`${hot}`) 
     let _dangChieu = this.parseBoolean(`${dangChieu}`)
     let _sapChieu = this.parseBoolean(`${sapChieu}`)
+    const filename = Date.now() + '_' + file.originalname + '.webp';
     let status = await this.prisma.phim.findFirst({
       where: {
         tenPhim
       }
     })
     if (status) throw new InternalServerErrorException('Phim đã tồn tại')
-    const filename = Date.now() + '_' + file.originalname + '.webp';
-    await sharp(file.buffer)
-      .resize(800)
-      .webp({ effort: 3 })
-      .toFile(path.join(process.cwd() + '/public/img', filename));
+    
     let data = {
       tenPhim,
       trailer,
@@ -70,8 +67,13 @@ export class FilmsService extends AppService {
         maPhim: phim.maPhim,
         hinhAnh: phim.hinhAnh
       }
+    }).then(async()=>{
+      await sharp(file.buffer)
+      .resize(800)
+      .webp({ effort: 3 })
+      .toFile(path.join(process.cwd() + '/public/img', filename));
     })
-    return this.response(data, 201)
+    return this.response(data, 201) 
 
   }
   async updateFilms(file: Express.Multer.File, body: UpdateFilmDto) {

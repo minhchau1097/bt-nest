@@ -25,7 +25,7 @@ export class LoginService extends AppService {
         loaiNguoiDung: status.loaiNguoiDung
       }
       let token = await this.jwtService.signAsync({ data });
-      return this.response(token, 201)
+      return this.response({...data ,accessToken: token}, 201)
     } else {
       throw new BadRequestException('Mật khẩu không đúng')
     }
