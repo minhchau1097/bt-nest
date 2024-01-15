@@ -39,7 +39,7 @@ export class TheatersService extends AppService {
         maCumRap: item.maCumRap,
         tenCumRap: item.tenCumRap,
         diaChi: item.diaChi,
-        danhSanhRap: item.rap_phim.map((item) => {
+        danhSachRap: item.rap_phim.map((item) => {
           return { maRap: item.maRap, tenRap: item.tenRap }
         })
       }

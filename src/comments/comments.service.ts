@@ -10,17 +10,20 @@ export class CommentsService extends AppService {
   constructor(private prisma: PrismaService) {
     super()
   }
-  async getAllComments(id: number) {
+  async getAllComments(maPhim: number) {
     const phim = await this.prisma.phim.findFirst({
       where: {
-        maPhim: id
+        maPhim
       }
     })
     if (!phim) throw new BadRequestException('Phim không tồn tại')
     const data = await this.prisma.binh_luan.findMany({
       where: {
-        maPhim: id
+        maPhim,
+      }, orderBy: {
+        ngayBinhLuan: 'desc'
       }
+
     });
     const newData = data.map(item => ({ ...item, ngayBinhLuan: moment(item.ngayBinhLuan).fromNow() }))
     return this.response(newData)

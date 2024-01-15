@@ -14,6 +14,8 @@ export class BookingtiketsService extends AppService {
     super()
   }
   async createShowtime({ maPhim, giaVe, ngayChieuGioChieu, maRap }) {
+    console.log(moment(ngayChieuGioChieu).format())
+    maPhim = Number(maPhim)
     const phim = await this.prisma.phim.findFirst({
       where:{
         maPhim
@@ -28,7 +30,7 @@ export class BookingtiketsService extends AppService {
     if(!rap) throw new BadRequestException('Mã rạp không tồn tại')
     let data = {
       maPhim,
-      ngayChieuGioChieu: moment(ngayChieuGioChieu).format(),
+      ngayChieuGioChieu,
       giaVe,
       maRap
     }
@@ -67,7 +69,7 @@ export class BookingtiketsService extends AppService {
     })
     const { tenCumRap, diaChi } = cumRap
 
-    let ngayChieu = moment(ngayChieuGioChieu).format('MM/DD/YYYY')
+    let ngayChieu = moment(ngayChieuGioChieu).format('DD/MM/YYYY')
     let gioChieu = moment(ngayChieuGioChieu).format('HH:mm')
 
     const ghe = await this.prisma.ghe.findMany({

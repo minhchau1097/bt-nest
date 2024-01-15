@@ -67,7 +67,8 @@ export class UsersService extends AppService {
         taiKhoan: user.taiKhoan
       }
     })
-    const { taiKhoan, matKhau, ...updateData } = data;
+    if(!data) throw new BadRequestException('Tài khoản không tồn tại')
+    const { taiKhoan, matKhau,email,hoTen,soDt,loaiNguoiDung } = data;
     const [account, phim] = await Promise.all([
       this.prisma.dat_ve.findMany({
         where: {
@@ -141,7 +142,11 @@ export class UsersService extends AppService {
 
     }
     let newData = {
-      updateData,
+      hoTen,
+      taiKhoan,
+      email,
+      soDt,
+      loaiNguoiDung,
       thongTinDatVe
     }
     return this.response(newData, 201)

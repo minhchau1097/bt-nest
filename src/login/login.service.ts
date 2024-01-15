@@ -15,7 +15,7 @@ export class LoginService extends AppService {
         taiKhoan
       }
     })
-    if (!status) throw new BadRequestException('Tài khoản không đúng')
+    if (!status) throw new BadRequestException('Tài khoản không đúng !')
     if (bcrypt.compareSync(matKhau, status.matKhau)) {
       let data = {
         taiKhoan: status.taiKhoan,
@@ -27,7 +27,7 @@ export class LoginService extends AppService {
       let token = await this.jwtService.signAsync({ data });
       return this.response({...data ,accessToken: token}, 201)
     } else {
-      throw new BadRequestException('Mật khẩu không đúng')
+      throw new BadRequestException('Mật khẩu không đúng !')
     }
   }
 
