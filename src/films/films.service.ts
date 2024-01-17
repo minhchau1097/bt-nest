@@ -39,7 +39,7 @@ export class FilmsService extends AppService {
   async addFilms(file: Express.Multer.File, body: Film) {
     let { tenPhim, trailer, moTa, ngayKhoiChieu, dangChieu, danhGia, hot, sapChieu } = body
     danhGia = Number(danhGia);
-    let _hot = this.parseBoolean(`${hot}`) 
+    let _hot = this.parseBoolean(`${hot}`)
     let _dangChieu = this.parseBoolean(`${dangChieu}`)
     let _sapChieu = this.parseBoolean(`${sapChieu}`)
     const filename = Date.now() + '_' + file.originalname + '.webp';
@@ -49,7 +49,7 @@ export class FilmsService extends AppService {
       }
     })
     if (status) throw new InternalServerErrorException('Phim đã tồn tại')
-    
+
     let data = {
       tenPhim,
       trailer,
@@ -67,17 +67,17 @@ export class FilmsService extends AppService {
         maPhim: phim.maPhim,
         hinhAnh: phim.hinhAnh
       }
-    }).then(async()=>{
+    }).then(async () => {
       await sharp(file.buffer)
-      .resize(800)
-      .webp({ effort: 3 })
-      .toFile(path.join(process.cwd() + '/public/img', filename));
+        .resize(800)
+        .webp({ effort: 3 })
+        .toFile(path.join(process.cwd() + '/public/img', filename));
     })
-    return this.response(data, 201) 
+    return this.response(data, 201)
 
   }
   async updateFilms(file: Express.Multer.File, body: UpdateFilmDto) {
-    let {maPhim, tenPhim, trailer, moTa, ngayKhoiChieu, dangChieu, danhGia, hot, sapChieu } = body
+    let { maPhim, tenPhim, trailer, moTa, ngayKhoiChieu, dangChieu, danhGia, hot, sapChieu } = body
     maPhim = Number(maPhim)
     danhGia = Number(danhGia);
     let _hot = this.parseBoolean(`${hot}`)
@@ -93,7 +93,9 @@ export class FilmsService extends AppService {
     if (!status) throw new NotFoundException('Phim không tồn tại')
 
     if (file) {
-      fs.unlinkSync(path.join(process.cwd() + '/public/img', status.hinhAnh))
+      if (status.hinhAnh) {
+        fs.unlinkSync(path.join(process.cwd() + '/public/img', status.hinhAnh))
+      }
 
       fileName = Date.now() + '_' + file.originalname + '.webp';
 
@@ -157,6 +159,10 @@ export class FilmsService extends AppService {
       }
     })
     if (!data) throw new BadRequestException('Phim không tồn tại')
+    if (data.hinhAnh) {
+
+      fs.unlinkSync(path.join(process.cwd() + '/public/img', data.hinhAnh))
+    }
     await this.prisma.phim.delete({
       where: {
         maPhim: data.maPhim
