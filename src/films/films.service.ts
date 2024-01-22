@@ -13,8 +13,10 @@ moment.locale('vi')
 @Injectable()
 export class FilmsService extends AppService {
   constructor(protected prisma: PrismaService) {
+
     super()
   }
+
   async getBanner() {
 
     const data = await this.prisma.banner_phim.findMany();
@@ -31,7 +33,7 @@ export class FilmsService extends AppService {
       }
     })
     const newData = data.map(item => {
-      return { ...item, ngayKhoiChieu: moment(item.ngayKhoiChieu).format('DD-MM-YYYY') }
+      return { ...item, ngayKhoiChieu: moment(item.ngayKhoiChieu).format() }
     })
     return this.response(newData)
 
@@ -68,6 +70,10 @@ export class FilmsService extends AppService {
         hinhAnh: phim.hinhAnh
       }
     }).then(async () => {
+      const directory = path.join(process.cwd(), '/public/img');
+      if (!fs.existsSync(directory)) {
+        fs.mkdirSync(directory, { recursive: true });
+      }
       await sharp(file.buffer)
         .resize(800)
         .webp({ effort: 3 })
@@ -93,12 +99,17 @@ export class FilmsService extends AppService {
     if (!status) throw new NotFoundException('Phim không tồn tại')
 
     if (file) {
-      if (status.hinhAnh) {
+      const directory = path.join(process.cwd(), `/public/img/${status.hinhAnh}`);
+      if (fs.existsSync(directory)) {
+        console.log(123)
         fs.unlinkSync(path.join(process.cwd() + '/public/img', status.hinhAnh))
       }
-
+      const directoryNoExist = path.join(process.cwd(), '/public/img');
+      if (!fs.existsSync(directoryNoExist)) {
+        fs.mkdirSync(directoryNoExist, { recursive: true });
+      }
       fileName = Date.now() + '_' + file.originalname + '.webp';
-
+      
       await sharp(file.buffer)
         .resize(800)
         .webp({ effort: 3 })
@@ -159,8 +170,8 @@ export class FilmsService extends AppService {
       }
     })
     if (!data) throw new BadRequestException('Phim không tồn tại')
-    if (data.hinhAnh) {
-
+    const directory = path.join(process.cwd(), `/public/img/${data.hinhAnh}`);
+    if (fs.existsSync(directory)) {
       fs.unlinkSync(path.join(process.cwd() + '/public/img', data.hinhAnh))
     }
     await this.prisma.phim.delete({

@@ -135,7 +135,7 @@ export class UsersService extends AppService {
           hinhAnh: phim.hinhAnh,
           maVe: key.maVe,
           tenPhim: phim.tenPhim,
-
+          ngayChieu: lichChieu.ngayChieuGioChieu
         })
 
       }
